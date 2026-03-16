@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// In production (Vercel), requests go through the Next.js proxy rewrite (/api/* → BACKEND_URL/*).
+// Override with NEXT_PUBLIC_API_URL if you want to call the backend directly.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api' : 'http://localhost:4000');
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
