@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id         String     @id @default(cuid())
+  name       String
+  slug       String     @unique
+  createdAt  DateTime   @default(now())
+  users      User[]
+  problems   Problem[]
+  machines   Machine[]
+  facilities Facility[]
+}
+
+enum Role {
+  OPERATOR
+  ENGINEER
+  MAINTENANCE
+  MANAGER
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  password       String
+  name           String
+  role           Role         @default(OPERATOR)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  problems       Problem[]    @relation("reporter")
+  responsible    Problem[]    @relation("responsible")
+  actions        Action[]
+  createdAt      DateTime     @default(now())
+}
+
+model Facility {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  machines       Machine[]
+  problems       Problem[]
+}
+
+model Machine {
+  id             String       @id @default(cuid())
+  name           String
+  machineType    String?
+  facilityId     String
+  facility       Facility     @relation(fields: [facilityId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  problems       Problem[]
+}
+
+model Problem {
+  id                  String       @id @default(cuid())
+  problemId           String       @unique
+  title               String
+  description         String?
+  severity            String?      @default("medium")
+  timestamp           DateTime     @default(now())
+  facilityId          String?
+  facility            Facility?    @relation(fields: [facilityId], references: [id])
+  machineId           String?
+  machine             Machine?     @relation(fields: [machineId], references: [id])
+  operatorId          String?
+  operator            User?        @relation("reporter", fields: [operatorId], references: [id])
+  materialBatch       String?
+  toolType            String?
+  processType         String?
+  parameters          Json?
+  observedSymptoms    String[]
+  suspectedCauses     String[]
+  rootCause           String?
+  rootCauseCategory   String?
+  correctiveAction    String?
+  responsiblePersonId String?
+  responsiblePerson   User?        @relation("responsible", fields: [responsiblePersonId], references: [id])
+  actionStatus        ActionStatus @default(OPEN)
+  dueDate             DateTime?
+  resolutionDate      DateTime?
+  outcome             String?
+  estimatedCostImpact Float?
+  attachments         Attachment[]
+  actions             Action[]
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+}
+
+model Action {
+  id           String       @id @default(cuid())
+  description  String
+  assignedToId String
+  assignedTo   User         @relation(fields: [assignedToId], references: [id])
+  dueDate      DateTime?
+  status       ActionStatus @default(OPEN)
+  problemId    String
+  problem      Problem      @relation(fields: [problemId], references: [id])
+  completedAt  DateTime?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  createdAt DateTime @default(now())
+}
