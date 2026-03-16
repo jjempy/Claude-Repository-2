@@ -13,7 +13,18 @@ async function request(path: string, options: RequestInit = {}): Promise<any> {
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    throw new Error('Cannot reach the API server. Please ensure the backend is running.');
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`API server returned an unexpected response (HTTP ${res.status}). Check that NEXT_PUBLIC_API_URL is set correctly.`);
+  }
+
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
